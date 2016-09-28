@@ -82,26 +82,63 @@ def split_model_create(data,nn,d):
         tempr = pd.DataFrame([[nn,0,0,'','',1,data['class'].value_counts().idxmax()]],columns=['node','child1','child2','col','value','leaf','class'])
         nodes=nodes.append(tempr,ignore_index=True)
 
-def predictor():
-    print('pr')
-
+def predictor(model,tst_row):
+    look_node = 1
+    sub_model = model.loc[model['node']==look_node]
+    while (sub_model['leaf'].iloc[0] == 0):
+        if ( sub_model['col'].iloc[0] != '' ) :
+            if (tst_row[sub_model['col'].iloc[0]] ==  sub_model['value'].iloc[0] ):
+                look_node =  sub_model['child1'].iloc[0]
+            else:
+                look_node =  sub_model['child2'].iloc[0]
+        sub_model = model.loc[model['node']==look_node]
+                
+    return int(sub_model['class'].iloc[0])
 ###############-------END OF FUNCTIONS REQUIRED FOR DECISION TREE-----------####################
 
 ### The actual start of the processing to create the model
 depth = int(raw_input("Enter depth of the tree:"))
-# print(df)
+
 split_model_create(df, 1, depth)
-# print(pd.value_counts(df['class'].values,sort=True))
-# print(df['class'].value_counts().idxmax())
-# print(df.mode('class'))
+
+print("The model learnt is below:")
 print(nodes)
+
 ###Read the file monks-1.test
-# dftest = pd.read_table("monks-1.test",header=None,sep=" ")
-# # dftest=dftest.drop(0,1) #remove the first NaN column
-# dftest.columns=['predicted','class','a1','a2','a3','a4','a5','a6','id'] #name the columns
-# # dftest['predicted']='x'
-# for index,row in dftest.iterrows():
-#     print(str(index)+str(row['class']))
-#     if index==50:
-#         break;
+dftest = pd.read_table("monks-1.test",header=None,sep=" ")
+dftest.columns=['predicted','class','a1','a2','a3','a4','a5','a6','id'] #name the columns
+dftest['predicted']='x' #Initialize to x for predicted
 # print(dftest)
+
+for index,dft in dftest.iterrows():
+    predict_val = predictor(nodes,dft)
+#     print('success:'+str(index)+' $ '+str(predict_val))
+    dftest.loc[index,'predicted'] = predict_val
+
+print(dftest)
+
+#Calculate Accuracy and confusion matrix
+correct,wrong = 0,0
+c00,c01,c10,c11 = 0,0,0,0
+for index,dft in dftest.iterrows():
+    if (dftest.loc[index,'class'] == 0 and dftest.loc[index,'predicted'] == 0):
+        correct += 1
+        c00 += 1
+    elif (dftest.loc[index,'class'] == 0 and dftest.loc[index,'predicted'] == 1):
+        wrong += 1
+        c01 += 1
+    elif (dftest.loc[index,'class'] == 1 and dftest.loc[index,'predicted'] == 1):
+        correct += 1
+        c11 += 1
+    elif (dftest.loc[index,'class'] == 1 and dftest.loc[index,'predicted'] == 0):
+        wrong += 1
+        c10 += 1
+
+print("Accuracy is :"+str(correct/(correct+wrong)))        
+print("Actual/Predicted")
+print("00 : "+str(c00))
+print("01 : "+str(c01))
+print("11 : "+str(c11))
+print("10 : "+str(c10))
+
+
